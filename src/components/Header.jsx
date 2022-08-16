@@ -54,9 +54,6 @@ export function Header() {
             <Link href="/" aria-label="Home">
               <Logo className="h-10 w-auto" />
             </Link>
-            <div className="hidden lg:flex lg:gap-10">
-              <NavLinks />
-            </div>
           </div>
           <div className="flex items-center gap-6">
             <Popover className="lg:hidden">
