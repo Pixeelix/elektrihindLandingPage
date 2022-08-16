@@ -4,7 +4,7 @@ import clsx from 'clsx'
 export function AppStoreLink({ color = 'black' }) {
   return (
     <Link
-      href="https://apps.apple.com/ee/app/elektrihind/id1601718250"
+      href="https://apple.co/3w7DNWw"
       aria-label="Laadi alla App Store'ist"
       className={clsx(
         'rounded-lg transition-colors',
@@ -22,3 +22,5 @@ export function AppStoreLink({ color = 'black' }) {
     </Link>
   )
 }
+
+
