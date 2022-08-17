@@ -9,10 +9,7 @@ export default function Home() {
     <>
       <Head>
         <title>Elektrihind - Reaalajas börsihind</title>
-        <meta
-          name="description"
-          content="By leveraging insights from our network of industry insiders, you’ll know exactly when to buy to maximize profit, and exactly when to sell to avoid painful losses."
-        />
+        <meta name="description" content=" Reaalajas börsihind" />
       </Head>
       <Header />
       <main>
