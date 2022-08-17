@@ -2,13 +2,15 @@ import { useId, useRef, useState } from 'react'
 import Image from 'next/future/image'
 import clsx from 'clsx'
 import { motion, useInView, useMotionValue } from 'framer-motion'
+import Link from 'next/link'
 
 import { AppScreen } from '@/components/AppScreen'
 import { AppStoreLink } from '@/components/AppStoreLink'
 import { Button } from '@/components/Button'
 import { Container } from '@/components/Container'
 import { PhoneFrame } from '@/components/PhoneFrame'
-import { GooglePlayLink } from '@/components/GooglePlayLink'
+import googlePlayImage from '@/images/google-play-badge.png'
+import { GooglePlayLink } from './GooglePlayLink'
 
 function BackgroundIllustration(props) {
   let id = useId()
@@ -337,12 +339,21 @@ export function Hero() {
               Elektrihind reaalajas sinu taskus.
             </h1>
             <p className="mt-6 text-lg text-gray-600">
-            Ära raiska arutult raha ulmelistele elektrihindadele vaid planeeri elektritarbimist targalt.
-            Reaalajas börsihind otse äpist.
+              Ära raiska arutult raha ulmelistele elektrihindadele vaid planeeri
+              elektritarbimist targalt. Reaalajas börsihind otse äpist.
             </p>
             <div className="mt-8 flex flex-wrap gap-x-6 gap-y-4">
               <AppStoreLink />
-
+              <Link
+                href="https://play.google.com/store/apps/details?id=com.saarsen.elektrihind&hl=et&fbclid=IwAR2hIsXvmU-FEfJWy38OYumZ5IncUigGzwbknhKNOSNYehc7BglUl6GTQco"
+                aria-label="Laadi alla Google Playst"
+              >
+                <Image
+                  src={googlePlayImage}
+                  className="Google Play Logo"
+                  style={{ resizeMode: 'cover', width: 140, height: 40 }}
+                />
+              </Link>
             </div>
           </div>
           <div className="relative mt-10 sm:mt-20 lg:col-span-5 lg:row-span-2 lg:mt-0 xl:col-span-6">

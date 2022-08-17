@@ -22,5 +22,3 @@ export function AppStoreLink({ color = 'black' }) {
     </Link>
   )
 }
-
-
