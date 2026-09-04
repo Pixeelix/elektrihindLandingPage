@@ -10,6 +10,7 @@ export function GooglePlayLink() {
     >
       <Image
         src={googlePlayImage}
+        alt="Get it on Google Play"
         className="Google Play Logo"
         style={{ width: 140, height: 40 }}
       />

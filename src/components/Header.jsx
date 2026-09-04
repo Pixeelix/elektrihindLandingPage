@@ -53,7 +53,7 @@ export function Header() {
         <div className="flex items-center text-gray-900">
               <Logo className="h-10 w-10 flex-none" />
               <div className="ml-4">
-                <p className="text-base font-semibold">Elektrihind</p>
+                <p className="text-base font-semibold">NordPrice</p>
               </div>
             </div>
         </Container>
