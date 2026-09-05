@@ -22,8 +22,8 @@ const TRANSLATIONS = {
   et: {
     interval15min: '15 min',
     interval1h: '1 tund',
-    pageTitle: 'NordPrice – Nord Pooli elektrihinnad',
-    pageDescription: 'NordPrice näitab reaalajas Nord Pooli elektrihindu Eestis, Soomes, Lätis ja Leedus.',
+    pageTitle: 'NordPrice – Reaalajas Nord Pooli elektrihinnad | Eesti, Soome, Läti, Leedu',
+    pageDescription: 'Vaata reaalajas Nord Pooli elektrihindu Eestis, Soomes, Lätis ja Leedus. Tänane ja homne hinnagraafik, KM-iga ja ilma. Tasuta rakendus iOS ja Android.',
     appSubtitle: 'Nord Pooli elektrihinnad',
     currentPrice: (name) => `Praegune hind · ${name}`,
     vatIncluded: 'KM sees',
@@ -67,8 +67,8 @@ const TRANSLATIONS = {
   en: {
     interval15min: '15 min',
     interval1h: '1 hour',
-    pageTitle: 'NordPrice – Nord Pool electricity prices',
-    pageDescription: 'NordPrice shows live Nord Pool electricity prices for Estonia, Finland, Latvia, and Lithuania.',
+    pageTitle: 'NordPrice – Live Nord Pool Electricity Prices | Estonia, Finland, Latvia, Lithuania',
+    pageDescription: 'See live Nord Pool electricity prices for Estonia, Finland, Latvia, and Lithuania. Today\'s and tomorrow\'s price chart, with and without VAT. Free app on iOS and Android.',
     appSubtitle: 'Nord Pool electricity prices',
     currentPrice: (name) => `Current price in ${name}`,
     vatIncluded: 'VAT included',
@@ -1004,6 +1004,40 @@ export default function Home({ initialData, fetchedAt, dataSource }) {
       <Head>
         <title>{t.pageTitle}</title>
         <meta name="description" content={t.pageDescription} />
+        <link rel="canonical" href="https://nordprice.app" />
+
+        {/* Open Graph */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://nordprice.app" />
+        <meta property="og:title" content={t.pageTitle} />
+        <meta property="og:description" content={t.pageDescription} />
+        <meta property="og:image" content="https://nordprice.app/og-image.png" />
+        <meta property="og:locale" content={lang === 'et' ? 'et_EE' : 'en_US'} />
+        <meta property="og:site_name" content="NordPrice" />
+
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={t.pageTitle} />
+        <meta name="twitter:description" content={t.pageDescription} />
+        <meta name="twitter:image" content="https://nordprice.app/og-image.png" />
+
+        {/* JSON-LD */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'WebApplication',
+              name: 'NordPrice',
+              url: 'https://nordprice.app',
+              description: t.pageDescription,
+              applicationCategory: 'UtilitiesApplication',
+              operatingSystem: 'iOS, Android, Web',
+              offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
+              areaServed: ['EE', 'FI', 'LV', 'LT'],
+            }),
+          }}
+        />
       </Head>
 
       <main className="relative min-h-screen text-ink">
