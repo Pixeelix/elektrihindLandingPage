@@ -34,7 +34,7 @@ const t = {
     pageTitle: 'Nord Pool elektrihind Eestis – Kuidas börsihind kujuneb? | NordPrice',
     pageDescription: 'Mis on Nord Pool ja kuidas kujuneb börsielektrihind Eestis, Soomes, Lätis ja Leedus? Selgitus, võrdlus ja reaalajas hinnad.',
     hero: {
-      label: 'Juhend',
+      label: '',
       heading: 'Nord Pool elektrihind Eestis',
       lead: 'Nord Pool on Põhja- ja Baltimaade suurim elektribörsi operaator. Siin selgitame, kuidas börsielektrihind kujuneb ja mida see sinu arve jaoks tähendab.',
     },
@@ -89,7 +89,7 @@ const t = {
     pageTitle: 'Nord Pool Electricity Price in Estonia – How Is It Formed? | NordPrice',
     pageDescription: 'What is Nord Pool and how is the spot electricity price formed in Estonia, Finland, Latvia and Lithuania? Explained clearly, with live prices.',
     hero: {
-      label: 'Guide',
+      label: '',
       heading: 'Nord Pool Electricity Price in Estonia',
       lead: 'Nord Pool is the largest electricity exchange in Northern and Baltic Europe. Here we explain how the spot price is formed and what it means for your bill.',
     },
@@ -229,8 +229,7 @@ export default function NordPoolElektrihind() {
 
           <article className="mt-10 pb-24">
             {/* Hero */}
-            <p className="text-label tracking-widest text-brand-500 uppercase">{content.hero.label}</p>
-            <h1 className="mt-3 text-h2 font-extrabold tracking-tight text-ink">{content.hero.heading}</h1>
+            <h1 className="text-h2 font-extrabold tracking-tight text-ink">{content.hero.heading}</h1>
             <p className="mt-5 text-lg leading-relaxed text-ink/70">{content.hero.lead}</p>
 
             <Link
