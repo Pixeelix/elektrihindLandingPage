@@ -63,7 +63,7 @@ const t = {
       },
       {
         title: 'Kontakt',
-        body: 'Privaatsusega seotud küsimuste korral kirjuta: martin.jogi@lhv.ee',
+        body: 'Privaatsusega seotud küsimuste korral kirjuta: koodipardik@gmail.com',
       },
     ],
   },
@@ -102,7 +102,7 @@ const t = {
       },
       {
         title: 'Contact',
-        body: 'For privacy-related questions, please email: martin.jogi@lhv.ee',
+        body: 'For privacy-related questions, please email: koodipardik@gmail.com',
       },
     ],
   },
