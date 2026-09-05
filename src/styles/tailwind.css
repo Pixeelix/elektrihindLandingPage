@@ -3,15 +3,14 @@
   font-weight: 100 900;
   font-display: block;
   font-style: normal;
-  font-named-instance: 'Regular';
   src: url('/fonts/Inter-roman.var.woff2') format('woff2');
 }
+
 @font-face {
   font-family: 'Inter';
   font-weight: 100 900;
   font-display: block;
   font-style: italic;
-  font-named-instance: 'Italic';
   src: url('/fonts/Inter-italic.var.woff2') format('woff2');
 }
 
@@ -21,4 +20,85 @@
 
 #__next {
   min-height: 100%;
+}
+
+/* Ambient background: cool light base with a soft "aurora" ribbon across the top */
+@layer components {
+  .ambient {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+    background: radial-gradient(120% 80% at 50% -10%, #ffffff 0%, #f4f5fa 55%, #eef0f7 100%);
+  }
+
+  .aurora {
+    position: absolute;
+    left: -20vw;
+    width: 140vw;
+    height: 46vh;
+    top: -22vh;
+    border-radius: 9999px;
+    filter: blur(70px);
+    opacity: 0.55;
+    transform: rotate(-5deg) translateZ(0);
+    will-change: transform;
+    background: linear-gradient(
+      90deg,
+      rgba(123, 143, 255, 0) 0%,
+      rgba(123, 143, 255, 0.85) 22%,
+      rgba(92, 110, 245, 0.75) 48%,
+      rgba(163, 176, 255, 0.85) 72%,
+      rgba(163, 176, 255, 0) 100%
+    );
+    animation: aurora-sweep 40s ease-in-out infinite alternate;
+  }
+
+  .aurora--2 {
+    top: -8vh;
+    height: 26vh;
+    opacity: 0.32;
+    filter: blur(90px);
+    transform: rotate(3deg) translateZ(0);
+    background: linear-gradient(
+      90deg,
+      rgba(183, 166, 255, 0) 0%,
+      rgba(183, 166, 255, 0.8) 35%,
+      rgba(123, 143, 255, 0.7) 65%,
+      rgba(123, 143, 255, 0) 100%
+    );
+    animation: aurora-sweep-2 52s ease-in-out infinite alternate;
+  }
+
+  .night-glow {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(60px);
+    pointer-events: none;
+  }
+}
+
+@keyframes aurora-sweep {
+  to {
+    transform: rotate(-3deg) translate3d(-8vw, 3vh, 0) scaleX(1.08);
+  }
+}
+
+@keyframes aurora-sweep-2 {
+  to {
+    transform: rotate(1deg) translate3d(10vw, -2vh, 0);
+  }
+}
+
+@media (max-width: 640px) {
+  .aurora {
+    filter: blur(50px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora {
+    animation: none;
+  }
 }
