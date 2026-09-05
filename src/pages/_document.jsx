@@ -4,7 +4,9 @@ export default function Document() {
   return (
     <Html className="h-full bg-cream text-ink antialiased" lang="et">
       <Head>
-        <meta name="theme-color" content="#FAF8F4" />
+        <meta name="theme-color" content="#eef0f7" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5431783362632568" crossOrigin="anonymous" />
       </Head>
       <body className="flex h-full flex-col">
