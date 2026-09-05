@@ -2,9 +2,9 @@ import { Head, Html, Main, NextScript } from 'next/document'
 
 export default function Document() {
   return (
-    <Html className="h-full text-ink antialiased" style={{ background: '#c5ccf5' }} lang="et">
+    <Html className="h-full text-ink antialiased" style={{ background: '#a8b2f5' }} lang="et">
       <Head>
-        <meta name="theme-color" content="#c5ccf5" />
+        <meta name="theme-color" content="#a8b2f5" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <link rel="alternate" hrefLang="et" href="https://nordprice.app/" />

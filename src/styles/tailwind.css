@@ -30,7 +30,7 @@
     z-index: 0;
     overflow: hidden;
     pointer-events: none;
-    background: radial-gradient(120% 80% at 50% -10%, #c5ccf5 0%, #d8dbf7 30%, #eef0f7 100%);
+    background: radial-gradient(120% 80% at 50% -10%, #a8b2f5 0%, #c8cef8 35%, #eef0f7 100%);
   }
 
   .aurora {
