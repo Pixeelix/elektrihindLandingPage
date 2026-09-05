@@ -25,12 +25,12 @@
 /* Ambient background: cool light base with a soft "aurora" ribbon across the top */
 @layer components {
   .ambient {
-    position: fixed;
+    position: absolute;
     inset: 0;
     z-index: 0;
     overflow: hidden;
     pointer-events: none;
-    background: radial-gradient(120% 80% at 50% -10%, #ffffff 0%, #f4f5fa 55%, #eef0f7 100%);
+    background: radial-gradient(120% 80% at 50% -10%, #eef1ff 0%, #f0f2fb 55%, #eef0f7 100%);
   }
 
   .aurora {
