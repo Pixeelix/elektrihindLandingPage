@@ -1090,9 +1090,9 @@ export default function Home({ initialData, fetchedAt, dataSource }) {
 
 
           {/* Dashboard */}
-          <section className="mt-5 grid gap-5 lg:grid-cols-12">
+          <section className="mt-5 grid gap-5">
             {/* Now panel */}
-            <div className="relative overflow-hidden rounded-[20px] bg-gradient-to-br from-ink via-[#232B52] to-brand-900 p-6 text-white shadow-[0_30px_60px_-30px_rgba(31,42,128,.6)] ring-1 ring-white/10 sm:p-8 lg:col-span-5">
+            <div className="relative overflow-hidden rounded-[20px] bg-gradient-to-br from-ink via-[#232B52] to-brand-900 p-6 text-white shadow-[0_30px_60px_-30px_rgba(31,42,128,.6)] ring-1 ring-white/10 sm:p-8">
               <div className="night-glow -right-16 -top-20 h-64 w-64 bg-brand-500/50" />
               <div className="night-glow -bottom-24 left-10 h-56 w-56 bg-brand-400/30" />
 
@@ -1132,7 +1132,7 @@ export default function Home({ initialData, fetchedAt, dataSource }) {
             </div>
 
             {/* Chart panel */}
-            <Card as="section" className="p-5 sm:p-7 lg:col-span-7">
+            <Card as="section" className="p-5 sm:p-7">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <h2 className="text-2xl font-bold tracking-tight">{t.priceCurve}</h2>
