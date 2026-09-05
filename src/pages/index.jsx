@@ -968,9 +968,9 @@ export default function Home({ initialData, fetchedAt, dataSource }) {
   const chartCurrentPoint = getCurrentPoint(
     intervalView === '1h' ? aggregateToHourly(todayPoints) : todayPoints,
   )
-  const currentPrice = formatPrice(currentPoint?.price, unit, includeTax)
+  const currentPrice = formatPrice(chartCurrentPoint?.price, unit, includeTax)
   const level = priceLevel(
-    currentPoint ? displayValue(currentPoint.price, 'c/kWh', true) : null,
+    chartCurrentPoint ? displayValue(chartCurrentPoint.price, 'c/kWh', true) : null,
   )
   const stats = getStats(activePoints, unit, includeTax, [t.min, t.average, t.max]).map(
     (stat) => (stat.tone === 'avg' ? { ...stat, detail: unitLabel } : stat),
@@ -980,8 +980,8 @@ export default function Home({ initialData, fetchedAt, dataSource }) {
     : day === 'today'
     ? t.today
     : t.tomorrow
-  const currentTime = currentPoint
-    ? tallinnTime(new Date(currentPoint.timestamp * 1000))
+  const currentTime = chartCurrentPoint
+    ? tallinnTime(new Date(chartCurrentPoint.timestamp * 1000))
     : '--:--'
   const updatedAt = fetchedAt ? tallinnTime(new Date(fetchedAt)) : '--:--'
 
@@ -1200,7 +1200,7 @@ export default function Home({ initialData, fetchedAt, dataSource }) {
 
             <div className="flex flex-wrap items-center justify-center gap-3">
               <a
-                href="https://apple.co/3w8DNWw"
+                href="https://apps.apple.com/ee/app/nordprice-elektrihind/id1601718250"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Download on the App Store"
