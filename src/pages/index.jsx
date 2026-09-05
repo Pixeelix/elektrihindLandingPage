@@ -62,6 +62,7 @@ const TRANSLATIONS = {
     tax: 'Maks',
     downloadApp: 'Laadi rakendus alla',
     privacy: 'Privaatsus',
+    nordPoolGuide: 'Mis on Nord Pool elektrihind?',
     dateLocale: 'et-EE',
   },
   en: {
@@ -107,6 +108,7 @@ const TRANSLATIONS = {
     tax: 'Tax',
     downloadApp: 'Download the app',
     privacy: 'Privacy',
+    nordPoolGuide: 'What is Nord Pool electricity price?',
     dateLocale: 'en-GB',
   },
 }
@@ -1228,6 +1230,10 @@ export default function Home({ initialData, fetchedAt, dataSource }) {
                 {dataSource === 'live' ? t.liveFromElering : t.sampleFallback} ·{' '}
                 <Link href="/privacy" className="font-semibold text-ink/70 hover:text-ink">
                   {t.privacy}
+                </Link>
+                {' · '}
+                <Link href="/nord-pool-elektrihind" className="font-semibold text-ink/70 hover:text-ink">
+                  {t.nordPoolGuide}
                 </Link>
               </p>
             </div>
