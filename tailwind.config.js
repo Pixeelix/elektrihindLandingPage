@@ -32,12 +32,39 @@ module.exports = {
       borderRadius: {
         '4xl': '2rem',
         '5xl': '2.5rem',
+        card: '28px',
+        inner: '22px',
+      },
+      boxShadow: {
+        card: '0 24px 60px -28px rgba(26,31,46,.16), inset 0 1px 0 rgba(255,255,255,.9)',
       },
       colors: ({ colors }) => ({
         gray: colors.neutral,
+        cream: '#FAF8F4',
+        ink: '#1A1F2E',
+        brand: {
+          50: '#EEF1FF',
+          100: '#DDE3FF',
+          200: '#C3CCFF',
+          300: '#A3B0FF',
+          400: '#7B8FFF',
+          500: '#5C6EF5',
+          600: '#4A5AE8',
+          700: '#3040D5',
+          800: '#2733A8',
+          900: '#1F2A80',
+        },
+        bar: {
+          past: '#D9DBE0',
+          pastHover: '#BFC3CC',
+        },
       }),
       fontFamily: {
         sans: ['Inter', ...defaultTheme.fontFamily.sans],
+      },
+      fontSize: {
+        h2: ['34px', { lineHeight: '1.1', letterSpacing: '-0.02em', fontWeight: '800' }],
+        label: ['11px', { lineHeight: '1', letterSpacing: '0.16em', fontWeight: '700' }],
       },
       keyframes: {
         'fade-in': {

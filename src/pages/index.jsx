@@ -1,5 +1,5 @@
 import Head from 'next/head'
-import Image from 'next/image'
+import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import appStoreBadgeEt from '@/images/appstore-badge-et.svg'
 import appStoreBadgeEn from '@/images/appstore-badge-en.svg'
@@ -26,27 +26,42 @@ const TRANSLATIONS = {
     pageDescription: 'NordPrice näitab reaalajas Nord Pooli elektrihindu Eestis, Soomes, Lätis ja Leedus.',
     appSubtitle: 'Nord Pooli elektrihinnad',
     currentPrice: (name) => `Praegune hind · ${name}`,
-    interval: 'Intervall',
     vatIncluded: 'KM sees',
-    data: 'Andmed',
-    liveFromElering: 'Otse Eleringist',
+    liveFromElering: 'Andmed otse Eleringist',
     sampleFallback: 'Näidisandmed',
-    updated: (time) => `Uuendatud ${time}`,
-    intervalsLoaded: (n) => `${n} intervalli laetud`,
+    updatedLabel: 'Uuendatud',
+    now: 'Praegu',
     priceCurve: 'Hinnagraafik',
     today: 'Täna',
     tomorrow: 'Homme',
-    cheapestUpcoming: 'Odavaimad eelseisvad',
-    noUpcoming: 'Eelseisvaid intervalle pole.',
     notPublished: 'Hinnad pole veel avaldatud',
-    lowest: 'Madalaim',
+    tomorrowAvailable: 'Homne hinnainfo on saadaval alates 15:00',
+    min: 'Min',
     average: 'Keskmine',
-    highest: 'Kõrgeim',
-    features: [
-      ['Neli hinnaaset', 'Eesti, Soome, Läti ja Leedu ühes vaates.'],
-      ['Täna ja homme', 'Vaheta tänaste ja avaldatud järgmise päeva hindade vahel.'],
-      ['Ühiku valik', 'Võrdle turuhinda EUR/MWh või tarbijasõbralikus c/kWh.'],
-    ],
+    max: 'Max',
+    level: {
+      veryCheap: 'Väga odav',
+      cheap: 'Odav',
+      normal: 'Keskmine',
+      expensive: 'Kallis',
+    },
+    unitWords: {
+      'c/kWh': ['senti', '/kWh'],
+      '€/kWh': ['€', '/kWh'],
+      '€/MWh': ['€', '/MWh'],
+    },
+    unitShort: {
+      'c/kWh': 's/kWh',
+      '€/kWh': '€/kWh',
+      '€/MWh': '€/MWh',
+    },
+    settings: 'Seaded',
+    region: 'Piirkond',
+    unit: 'Ühik',
+    graphInterval: 'Intervall',
+    tax: 'Maks',
+    downloadApp: 'Laadi rakendus alla',
+    privacy: 'Privaatsus',
     dateLocale: 'et-EE',
   },
   en: {
@@ -56,32 +71,46 @@ const TRANSLATIONS = {
     pageDescription: 'NordPrice shows live Nord Pool electricity prices for Estonia, Finland, Latvia, and Lithuania.',
     appSubtitle: 'Nord Pool electricity prices',
     currentPrice: (name) => `Current price in ${name}`,
-    interval: 'Interval',
     vatIncluded: 'VAT included',
-    data: 'Data',
-    liveFromElering: 'Live from Elering',
-    sampleFallback: 'Sample fallback',
-    updated: (time) => `Updated ${time}`,
-    intervalsLoaded: (n) => `${n} intervals loaded`,
-    priceCurve: 'Price curve',
+    liveFromElering: 'Data live from Elering',
+    sampleFallback: 'Sample data',
+    updatedLabel: 'Updated',
+    now: 'Now',
+    priceCurve: 'Price chart',
     today: 'Today',
     tomorrow: 'Tomorrow',
-    cheapestUpcoming: 'Cheapest upcoming intervals',
-    noUpcoming: 'No upcoming intervals available.',
     notPublished: 'Prices are not published yet',
-    lowest: 'Lowest',
+    tomorrowAvailable: 'Tomorrow\u2019s prices are available from 15:00',
+    min: 'Min',
     average: 'Average',
-    highest: 'Highest',
-    features: [
-      ['Four price areas', 'Estonia, Finland, Latvia, and Lithuania in one view.'],
-      ['Today and tomorrow', 'Switch between today and published day-ahead prices.'],
-      ['Unit control', 'Compare market price in EUR/MWh or consumer-friendly c/kWh.'],
-    ],
+    max: 'Max',
+    level: {
+      veryCheap: 'Very cheap',
+      cheap: 'Cheap',
+      normal: 'Average',
+      expensive: 'Expensive',
+    },
+    unitWords: {
+      'c/kWh': ['cents', '/kWh'],
+      '€/kWh': ['€', '/kWh'],
+      '€/MWh': ['€', '/MWh'],
+    },
+    unitShort: {
+      'c/kWh': 'c/kWh',
+      '€/kWh': '€/kWh',
+      '€/MWh': '€/MWh',
+    },
+    settings: 'Settings',
+    region: 'Region',
+    unit: 'Unit',
+    graphInterval: 'Interval',
+    tax: 'Tax',
+    downloadApp: 'Download the app',
+    privacy: 'Privacy',
     dateLocale: 'en-GB',
   },
 }
 
-const AREA_LOOKUP = Object.fromEntries(AREAS.map((area) => [area.code, area]))
 const TIME_ZONE = 'Europe/Tallinn'
 const VAT_RATE = 1.24
 
@@ -113,6 +142,14 @@ function tallinnTime(date, options = {}) {
     minute: '2-digit',
     hour12: false,
     ...options,
+  }).format(date)
+}
+
+function tallinnHour(date) {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: TIME_ZONE,
+    hour: '2-digit',
+    hourCycle: 'h23',
   }).format(date)
 }
 
@@ -167,6 +204,23 @@ function formatPrice(value, unit, includeTax) {
   }
 }
 
+// Price level is always judged in c/kWh incl. VAT so the label is independent
+// of the user's unit / tax display settings.
+function priceLevel(centsInclVat) {
+  if (centsInclVat == null || Number.isNaN(centsInclVat)) return null
+  if (centsInclVat < 5) return 'veryCheap'
+  if (centsInclVat < 10) return 'cheap'
+  if (centsInclVat < 20) return 'normal'
+  return 'expensive'
+}
+
+const LEVEL_TONE = {
+  veryCheap: 'text-emerald-600',
+  cheap: 'text-brand-600',
+  normal: 'text-ink/60',
+  expensive: 'text-rose-600',
+}
+
 function getCurrentPoint(points, now = Date.now()) {
   if (!points.length) {
     return null
@@ -180,12 +234,12 @@ function getCurrentPoint(points, now = Date.now()) {
   )
 }
 
-function getStats(points, unit, includeTax, labels = ['Lowest', 'Average', 'Highest']) {
+function getStats(points, unit, includeTax, labels = ['Min', 'Average', 'Max']) {
   if (!points.length) {
     return [
-      { label: labels[0], value: '--', detail: '--' },
-      { label: labels[1], value: '--', detail: '--' },
-      { label: labels[2], value: '--', detail: '--' },
+      { label: labels[0], value: '--', detail: '--', tone: 'min' },
+      { label: labels[1], value: '--', detail: '--', tone: 'avg' },
+      { label: labels[2], value: '--', detail: '--', tone: 'max' },
     ]
   }
 
@@ -208,35 +262,26 @@ function getStats(points, unit, includeTax, labels = ['Lowest', 'Average', 'High
       label: labels[0],
       value: formatNumber(low.value, decimals),
       detail: tallinnTime(new Date(low.timestamp * 1000)),
+      tone: 'min',
     },
     {
       label: labels[1],
       value: formatNumber(average, decimals),
       detail: unit,
+      tone: 'avg',
     },
     {
       label: labels[2],
       value: formatNumber(high.value, decimals),
       detail: tallinnTime(new Date(high.timestamp * 1000)),
+      tone: 'max',
     },
   ]
 }
 
-function getBestUpcoming(points, unit, includeTax, now = Date.now()) {
-  const decimals = unitDecimals(unit)
-
-  return points
-    .filter((point) => point.timestamp * 1000 >= now - 15 * 60 * 1000)
-    .map((point) => ({
-      ...point,
-      value: displayValue(point.price, unit, includeTax),
-    }))
-    .sort((a, b) => a.value - b.value)
-    .slice(0, 5)
-    .map((point) => ({
-      time: tallinnTime(new Date(point.timestamp * 1000)),
-      price: formatNumber(point.value, decimals),
-    }))
+function isDayPublished(points) {
+  const hours = new Set(points.map((point) => Math.floor(point.timestamp / 3600)))
+  return hours.size >= 20
 }
 
 function aggregateToHourly(points) {
@@ -317,16 +362,77 @@ function normalizePriceData(payload, dayKeys) {
   )
 }
 
-function SegmentButton({ children, selected, onClick }) {
+/* ------------------------------------------------------------------ */
+/* UI primitives                                                       */
+/* ------------------------------------------------------------------ */
+
+function BrandMark({ size = 40, gradientId = 'np-grad', className }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={size}
+      height={size}
+      viewBox="0 0 50 50"
+      className={classNames('flex-none', className)}
+      aria-hidden="true"
+    >
+      <defs>
+        <radialGradient id={gradientId} cx="65%" cy="35%" r="85%">
+          <stop offset="0%" stopColor="#7B8FFF" />
+          <stop offset="50%" stopColor="#4A5AE8" />
+          <stop offset="100%" stopColor="#3040D5" />
+        </radialGradient>
+      </defs>
+      <rect width="50" height="50" rx="12" fill={`url(#${gradientId})`} />
+      <g fill="#FFF" transform="translate(15.234 7.91)">
+        <g>
+          <path fillOpacity="0.80" d="M15.4296875 0L0 19.6289063 8.18260051 19.6289063z" />
+          <path fillOpacity="0.40" d="M0 19.6289062L15.4296875 0 4.06593117 19.6289062z" />
+        </g>
+        <g transform="rotate(180 9.766 17.139)">
+          <path fillOpacity="0.80" d="M15.4296875 0L0 19.6289063 8.18260051 19.6289063z" />
+          <path fillOpacity="0.40" d="M0 19.6289062L15.4296875 0 4.06593117 19.6289062z" />
+        </g>
+      </g>
+    </svg>
+  )
+}
+
+function Card({ className, children, as: Tag = 'div' }) {
+  return (
+    <Tag
+      className={classNames(
+        'rounded-[20px] bg-white/80 shadow-[0_10px_40px_-22px_rgba(26,31,46,.25)] ring-1 ring-ink/[.06] backdrop-blur-sm',
+        className,
+      )}
+    >
+      {children}
+    </Tag>
+  )
+}
+
+function PillGroup({ className, children }) {
+  return (
+    <div
+      className={classNames(
+        'inline-flex items-center gap-0.5 rounded-full bg-ink/[.05] p-1',
+        className,
+      )}
+    >
+      {children}
+    </div>
+  )
+}
+
+function SegmentButton({ children, selected, onClick, size = 'md' }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={classNames(
-        'h-9 rounded-md px-3 text-sm font-semibold transition',
-        selected
-          ? 'bg-gray-900 text-white shadow-sm'
-          : 'text-gray-600 hover:bg-white hover:text-gray-900',
+        'rounded-full font-semibold transition',
+        size === 'sm' ? 'h-8 px-3 text-xs' : 'h-9 px-3.5 text-sm',
+        selected ? 'bg-ink text-white shadow-sm' : 'text-ink/60 hover:bg-white/70 hover:text-ink',
       )}
     >
       {children}
@@ -334,397 +440,422 @@ function SegmentButton({ children, selected, onClick }) {
   )
 }
 
-function StatCard({ label, value, detail }) {
+const STAT_TONE = {
+  min: 'text-emerald-600',
+  avg: 'text-ink',
+  max: 'text-rose-600',
+}
+
+function StatTile({ label, value, detail, tone = 'avg' }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-        {label}
-      </p>
-      <p className="mt-2 text-2xl font-bold tracking-normal text-gray-900">
+    <div className="rounded-2xl bg-ink/[.035] px-4 py-3">
+      <p className="text-label uppercase text-ink/45">{label}</p>
+      <p
+        className={classNames(
+          'mt-1.5 text-xl font-bold tabular-nums tracking-tight sm:text-2xl',
+          STAT_TONE[tone],
+        )}
+      >
         {value}
       </p>
-      <p className="mt-1 text-sm font-medium text-gray-500">{detail}</p>
+      <p className="mt-0.5 text-xs font-medium text-ink/45">{detail}</p>
     </div>
   )
 }
 
-function PriceGraph({ points, currentPoint, unit, includeTax, emptyText = 'Prices are not published yet' }) {
+const LEVEL_BADGE = {
+  veryCheap: 'bg-emerald-400/20 text-emerald-200 ring-emerald-300/30',
+  cheap: 'bg-brand-400/25 text-brand-100 ring-brand-300/30',
+  normal: 'bg-amber-400/20 text-amber-200 ring-amber-300/30',
+  expensive: 'bg-rose-400/20 text-rose-200 ring-rose-300/30',
+}
+
+/* ------------------------------------------------------------------ */
+/* Price chart                                                         */
+/* ------------------------------------------------------------------ */
+
+const INK = '#1A1F2E'
+const LEVEL_FILL = {
+  veryCheap: '#34D399',
+  cheap: '#7B8FFF',
+  normal: '#FBBF24',
+  expensive: '#FB7185',
+}
+
+function ChartChip({ anchorX, anchorY, text, fill, bounds, textColor = '#FFFFFF' }) {
+  const chipH = 24
+  const chipW = Math.round(text.length * 6.6 + 22)
+  const x = Math.max(bounds.left, Math.min(bounds.right - chipW, anchorX - chipW / 2))
+  const y = Math.max(4, anchorY - chipH - 14)
+  const pointerX = Math.max(x + 10, Math.min(x + chipW - 10, anchorX))
+
+  return (
+    <g pointerEvents="none">
+      <rect x={x} y={y} width={chipW} height={chipH} rx={12} fill={fill} />
+      <path
+        d={`M ${pointerX - 5} ${y + chipH - 0.5} L ${pointerX + 5} ${y + chipH - 0.5} L ${pointerX} ${y + chipH + 5} Z`}
+        fill={fill}
+      />
+      <text
+        x={x + chipW / 2}
+        y={y + chipH / 2 + 4.5}
+        textAnchor="middle"
+        fontSize="12"
+        fontWeight="700"
+        fill={textColor}
+        style={{ fontVariantNumeric: 'tabular-nums' }}
+      >
+        {text}
+      </text>
+    </g>
+  )
+}
+
+function PriceGraph({
+  points,
+  currentPoint,
+  unit,
+  includeTax,
+  emptyText = 'Prices are not published yet',
+  nowLabel = 'Now',
+  unitLabel = 'c/kWh',
+}) {
+  const containerRef = useRef(null)
+  const [width, setWidth] = useState(720)
   const [hoveredIndex, setHoveredIndex] = useState(null)
 
-  const chart = useMemo(() => {
-    const width = 920
-    const height = 390
-    const pad = { top: 34, right: 34, bottom: 54, left: 62 }
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return undefined
 
-    if (!points.length) {
-      return { width, height, empty: true }
+    const update = () => {
+      const next = Math.round(el.getBoundingClientRect().width)
+      if (next > 0) setWidth(next)
+    }
+    update()
+
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', update)
+      return () => window.removeEventListener('resize', update)
     }
 
-    const values = points.map((point) =>
-      displayValue(point.price, unit, includeTax),
-    )
-    let min = Math.min(...values, 0)
-    let max = Math.max(...values, 0.01)
-    const padding = Math.max((max - min) * 0.15, max * 0.05, 0.0001)
-    min -= padding
-    max += padding
+    const observer = new ResizeObserver(update)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
-    const innerWidth = width - pad.left - pad.right
-    const innerHeight = height - pad.top - pad.bottom
-    const xFor = (index) =>
-      pad.left +
-      (points.length === 1 ? 0 : (index / (points.length - 1)) * innerWidth)
-    const yFor = (value) => pad.top + ((max - value) / (max - min)) * innerHeight
+  const height =
+    width < 640 ? Math.round(width * 0.78) : Math.round(Math.min(width * 0.5, 360))
 
-    const decorated = points.map((point, index) => {
+  const chart = useMemo(() => {
+    const pad = { top: 40, right: 16, bottom: 54, left: width < 640 ? 36 : 48 }
+    if (!points.length) {
+      return { empty: true, pad }
+    }
+
+    const values = points.map((point) => displayValue(point.price, unit, includeTax))
+    const rawMin = Math.min(0, ...values)
+    const rawMax = Math.max(0.01, ...values)
+    const span = rawMax - rawMin
+    const min = rawMin < 0 ? rawMin - span * 0.1 : 0
+    const max = rawMax + span * 0.14
+
+    const innerW = width - pad.left - pad.right
+    const innerH = height - pad.top - pad.bottom
+    const yFor = (value) => pad.top + ((max - value) / (max - min)) * innerH
+    const y0 = yFor(0)
+    const right = pad.left + innerW
+
+    const n = points.length
+    const slot = innerW / n
+    const now = Date.now()
+    const intervalSec = n > 1 ? points[1].timestamp - points[0].timestamp : 3600
+
+    const nodes = points.map((point, index) => {
       const value = values[index]
+      const date = new Date(point.timestamp * 1000)
       return {
-        ...point,
         index,
+        timestamp: point.timestamp,
         value,
-        x: xFor(index),
+        x: pad.left + slot * (index + 0.5),
         y: yFor(value),
+        date,
+        hour: tallinnHour(date),
+        isHourStart: date.getUTCMinutes() === 0,
+        level: priceLevel(displayValue(point.price, 'c/kWh', true)),
+        isPast: (point.timestamp + intervalSec) * 1000 <= now,
       }
     })
 
-    const stepPath = decorated.reduce((path, point, index) => {
-      if (index === 0) {
-        return `M ${point.x} ${point.y}`
-      }
+    let line = `M ${pad.left} ${nodes[0].y} L ${nodes[0].x} ${nodes[0].y}`
+    for (let i = 1; i < n; i += 1) {
+      const a = nodes[i - 1]
+      const b = nodes[i]
+      const cx = (a.x + b.x) / 2
+      line += ` C ${cx} ${a.y} ${cx} ${b.y} ${b.x} ${b.y}`
+    }
+    line += ` L ${right} ${nodes[n - 1].y}`
+    const area = `${line} L ${right} ${y0} L ${pad.left} ${y0} Z`
 
-      return `${path} H ${point.x} V ${point.y}`
-    }, '')
-    const zeroY = Math.max(pad.top, Math.min(height - pad.bottom, yFor(0)))
     const current = currentPoint
-      ? decorated.find((point) => point.timestamp === currentPoint.timestamp)
+      ? nodes.find((node) => node.timestamp === currentPoint.timestamp) ?? null
       : null
-    const low = decorated.reduce((best, point) =>
-      point.value < best.value ? point : best,
-    )
-    const high = decorated.reduce((best, point) =>
-      point.value > best.value ? point : best,
-    )
-    const bestWindow = low
-      ? {
-          x: Math.max(pad.left, low.x - innerWidth / Math.max(points.length - 1, 1) / 2),
-          width: Math.max(16, innerWidth / Math.max(points.length - 1, 1)),
-        }
-      : null
-    const ticks = Array.from({ length: 4 }, (_, index) => {
-      const value = min + ((max - min) / 3) * index
-      return {
-        value,
-        label: formatNumber(value, unitDecimals(unit)),
-        y: yFor(value),
-      }
-    }).reverse()
-    const hourLabels = [0, 6, 12, 18, 24].map((hour) => ({
-      label: hour === 24 ? '24' : `${String(hour).padStart(2, '0')}:00`,
-      x: pad.left + (hour / 24) * innerWidth,
+    const splitX = current ? current.x : pad.left
+
+    const tickCount = 4
+    const ticks = Array.from({ length: tickCount }, (_, i) => {
+      const value = (rawMax / (tickCount - 1)) * i
+      return { value, y: yFor(value) }
+    })
+    if (rawMin < 0) ticks.unshift({ value: rawMin, y: yFor(rawMin) })
+
+    const step = width < 480 ? 6 : width < 760 ? 3 : 2
+    const hourLabels = nodes
+      .filter((node) => node.isHourStart && Number(node.hour) % step === 0)
+      .map((node) => ({
+        x: node.x,
+        label: node.hour,
+        isCurrent: current ? node.hour === current.hour : false,
+      }))
+
+    const stripY = height - pad.bottom + 14
+    const strip = nodes.map((node) => ({
+      x: pad.left + slot * node.index + (n > 48 ? 0.5 : 1.5),
+      w: Math.max(1, slot - (n > 48 ? 1 : 3)),
+      fill: LEVEL_FILL[node.level] ?? INK,
+      opacity: node.isPast && current ? 0.3 : 0.95,
+      key: node.timestamp,
     }))
 
     return {
-      width,
-      height,
+      empty: false,
       pad,
-      decorated,
-      stepPath,
-      zeroY,
+      nodes,
+      slot,
+      y0,
+      right,
+      line,
+      area,
       current,
-      low,
-      high,
-      bestWindow,
+      splitX,
       ticks,
       hourLabels,
-      pointGap: innerWidth / Math.max(points.length - 1, 1),
+      strip,
+      stripY,
+      tickDecimals: unit === 'c/kWh' ? 0 : unitDecimals(unit),
     }
-  }, [currentPoint, includeTax, points, unit])
+  }, [currentPoint, height, includeTax, points, unit, width])
 
-  const hoveredPoint =
-    hoveredIndex == null ? null : chart.decorated?.[hoveredIndex] ?? null
+  const hoveredNode = hoveredIndex == null ? null : chart.nodes?.[hoveredIndex] ?? null
 
-  const handlePointerMove = (event) => {
-    if (!chart.decorated?.length) {
-      return
-    }
-
+  const handlePointer = (event) => {
+    if (chart.empty) return
     const rect = event.currentTarget.getBoundingClientRect()
-    const x = ((event.clientX - rect.left) / rect.width) * chart.width
-    const nearest = chart.decorated.reduce((best, point) =>
-      Math.abs(point.x - x) < Math.abs(best.x - x) ? point : best,
+    const xPx = ((event.clientX - rect.left) / rect.width) * width
+    const index = Math.max(
+      0,
+      Math.min(chart.nodes.length - 1, Math.floor((xPx - chart.pad.left) / chart.slot)),
     )
-    setHoveredIndex(nearest.index)
+    setHoveredIndex(index)
   }
 
-  const tooltip = hoveredPoint
-    ? {
-        point: hoveredPoint,
-        price: formatNumber(hoveredPoint.value, unitDecimals(unit)),
-        unit,
-        time: tallinnTime(new Date(hoveredPoint.timestamp * 1000)),
-        x: Math.min(
-          chart.width - chart.pad.right - 138,
-          Math.max(chart.pad.left + 6, hoveredPoint.x - 69),
-        ),
-        y:
-          hoveredPoint.y > chart.height / 2
-            ? Math.max(chart.pad.top + 8, hoveredPoint.y - 70)
-            : Math.min(chart.height - chart.pad.bottom - 58, hoveredPoint.y + 18),
-      }
-    : null
-
-  if (chart.empty) {
-    return (
-      <div className="grid h-80 place-items-center rounded-lg border border-dashed border-gray-300 bg-gray-50 text-sm font-semibold text-gray-500">
-        {emptyText}
-      </div>
-    )
-  }
+  const decimals = unitDecimals(unit)
+  const bounds = { left: chart.pad.left, right: width - chart.pad.right }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-      <svg
-        viewBox={`0 0 ${chart.width} ${chart.height}`}
-        role="img"
-        aria-label={`Price chart for ${points.length} intervals`}
-        className="block h-96 w-full cursor-crosshair"
-        preserveAspectRatio="none"
-        onPointerMove={handlePointerMove}
-        onPointerLeave={() => setHoveredIndex(null)}
-      >
-        <rect width={chart.width} height={chart.height} fill="#ffffff" />
-        <defs>
-          <filter id="label-shadow" x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow
-              dx="0"
-              dy="5"
-              stdDeviation="5"
-              floodColor="#0f172a"
-              floodOpacity="0.14"
-            />
-          </filter>
-        </defs>
+    <div ref={containerRef} className="w-full">
+      {chart.empty ? (
+        <div
+          style={{ height }}
+          className="grid place-items-center rounded-2xl border border-dashed border-ink/15 bg-ink/[.03] text-sm font-semibold text-ink/50"
+        >
+          {emptyText}
+        </div>
+      ) : (
+        <svg
+          viewBox={`0 0 ${width} ${height}`}
+          width="100%"
+          height={height}
+          className="block select-none"
+          style={{ touchAction: 'pan-y' }}
+          onPointerMove={handlePointer}
+          onPointerDown={handlePointer}
+          onPointerLeave={() => setHoveredIndex(null)}
+          role="img"
+        >
+          <defs>
+            <linearGradient id="np-area-future" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#7B8FFF" stopOpacity="0.5" />
+              <stop offset="100%" stopColor="#7B8FFF" stopOpacity="0" />
+            </linearGradient>
+            <linearGradient id="np-area-past" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={INK} stopOpacity="0.12" />
+              <stop offset="100%" stopColor={INK} stopOpacity="0" />
+            </linearGradient>
+            <clipPath id="np-clip-past">
+              <rect x="0" y="0" width={Math.max(0, chart.splitX)} height={height} />
+            </clipPath>
+            <clipPath id="np-clip-future">
+              <rect x={chart.splitX} y="0" width={Math.max(0, width - chart.splitX)} height={height} />
+            </clipPath>
+          </defs>
 
-        {chart.bestWindow ? (
-          <rect
-            x={chart.bestWindow.x}
-            y={chart.pad.top}
-            width={chart.bestWindow.width}
-            height={chart.height - chart.pad.top - chart.pad.bottom}
-            fill="#dcfce7"
-            opacity="0.65"
-          />
-        ) : null}
-
-        {chart.current ? (
-          <rect
-            x={Math.max(chart.pad.left, chart.current.x - chart.pointGap / 2)}
-            y={chart.pad.top}
-            width={Math.max(12, chart.pointGap)}
-            height={chart.height - chart.pad.top - chart.pad.bottom}
-            fill="#f3f4f6"
-            opacity="0.9"
-          />
-        ) : null}
-
-        {chart.ticks.map((tick) => (
-          <g key={tick.label}>
-            <line
-              x1={chart.pad.left}
-              x2={chart.width - chart.pad.right}
-              y1={tick.y}
-              y2={tick.y}
-              stroke="#e5e7eb"
-              strokeWidth="1"
-              strokeDasharray="4 7"
-            />
-            <text
-              x={chart.pad.left - 12}
-              y={tick.y + 4}
-              textAnchor="end"
-              fontSize="12"
-              fontWeight="600"
-              fill="#6b7280"
-            >
-              {tick.label}
-            </text>
-          </g>
-        ))}
-
-        <line
-          x1={chart.pad.left}
-          x2={chart.width - chart.pad.right}
-          y1={chart.zeroY}
-          y2={chart.zeroY}
-          stroke="#9ca3af"
-          strokeDasharray="5 7"
-          strokeWidth="1"
-        />
-
-        <path
-          d={chart.stepPath}
-          fill="none"
-          stroke="#6366f1"
-          strokeWidth="2.2"
-          strokeLinejoin="miter"
-          strokeLinecap="butt"
-        />
-
-        {chart.current ? (
-          <g>
-            <line
-              x1={chart.current.x}
-              x2={chart.current.x}
-              y1={chart.pad.top}
-              y2={chart.height - chart.pad.bottom}
-              stroke="#94a3b8"
-              strokeWidth="1.4"
-              strokeDasharray="5 6"
-            />
-            <circle
-              cx={chart.current.x}
-              cy={chart.current.y}
-              r="8"
-              fill="#fb7185"
-              stroke="#ffffff"
-              strokeWidth="3"
-            />
-            <rect
-              x={Math.min(chart.width - 94, Math.max(chart.pad.left, chart.current.x - 32))}
-              y={Math.max(chart.pad.top + 4, chart.current.y - 42)}
-              width="64"
-              height="28"
-              rx="5"
-              fill="#ffffff"
-              stroke="#e5e7eb"
-              filter="url(#label-shadow)"
-            />
-            <text
-              x={Math.min(chart.width - 62, Math.max(chart.pad.left + 32, chart.current.x))}
-              y={Math.max(chart.pad.top + 23, chart.current.y - 23)}
-              textAnchor="middle"
-              fontSize="13"
-              fontWeight="700"
-              fill="#111827"
-            >
-              {tallinnTime(new Date(chart.current.timestamp * 1000))}
-            </text>
-          </g>
-        ) : null}
-
-        {tooltip ? (
-          <g>
-            <line
-              x1={tooltip.point.x}
-              x2={tooltip.point.x}
-              y1={chart.pad.top}
-              y2={chart.height - chart.pad.bottom}
-              stroke="#111827"
-              strokeWidth="1.4"
-              strokeDasharray="4 5"
-              opacity="0.65"
-            />
-            <circle
-              cx={tooltip.point.x}
-              cy={tooltip.point.y}
-              r="7"
-              fill="#111827"
-              stroke="#ffffff"
-              strokeWidth="3"
-            />
-            <rect
-              x={tooltip.x}
-              y={tooltip.y}
-              width="138"
-              height="54"
-              rx="7"
-              fill="#ffffff"
-              stroke="#e5e7eb"
-              filter="url(#label-shadow)"
-            />
-            <text
-              x={tooltip.x + 12}
-              y={tooltip.y + 21}
-              fontSize="14"
-              fontWeight="800"
-              fill="#111827"
-            >
-              {tooltip.time}
-            </text>
-            <text
-              x={tooltip.x + 12}
-              y={tooltip.y + 40}
-              fontSize="13"
-              fontWeight="700"
-              fill="#4f46e5"
-            >
-              {tooltip.price} {tooltip.unit}
-            </text>
-          </g>
-        ) : null}
-
-        {chart.high ? (
-          <g>
-            <line
-              x1={chart.high.x}
-              x2={chart.high.x}
-              y1={chart.high.y - 22}
-              y2={chart.high.y - 8}
-              stroke="#111827"
-              strokeWidth="1.2"
-            />
-            <text
-              x={Math.min(chart.width - 42, Math.max(chart.pad.left + 42, chart.high.x))}
-              y={Math.max(chart.pad.top + 12, chart.high.y - 28)}
-              textAnchor="middle"
-              fontSize="13"
-              fontWeight="700"
-              fill="#111827"
-            >
-              {formatNumber(chart.high.value, unitDecimals(unit))}
-            </text>
-          </g>
-        ) : null}
-
-        {chart.low ? (
-          <g>
-            <text
-              x={Math.min(chart.width - 42, Math.max(chart.pad.left + 42, chart.low.x))}
-              y={Math.min(chart.height - chart.pad.bottom - 10, chart.low.y + 28)}
-              textAnchor="middle"
-              fontSize="13"
-              fontWeight="700"
-              fill="#111827"
-            >
-              {formatNumber(chart.low.value, unitDecimals(unit))}
-            </text>
-          </g>
-        ) : null}
-
-        {chart.hourLabels.map((label) => (
+          {/* grid */}
+          {chart.ticks.map((tick) => (
+            <g key={tick.value}>
+              <line
+                x1={chart.pad.left}
+                x2={chart.right}
+                y1={tick.y}
+                y2={tick.y}
+                stroke={INK}
+                strokeOpacity={tick.value === 0 ? 0.22 : 0.08}
+                strokeWidth="1"
+              />
+              <text
+                x={chart.pad.left - 8}
+                y={tick.y + 4}
+                textAnchor="end"
+                fontSize="11"
+                fontWeight="600"
+                fill={INK}
+                fillOpacity="0.45"
+                style={{ fontVariantNumeric: 'tabular-nums' }}
+              >
+                {formatNumber(tick.value, chart.tickDecimals)}
+              </text>
+            </g>
+          ))}
           <text
-            key={label.label}
-            x={label.x}
-            y={chart.height - 18}
-            textAnchor="middle"
-            fontSize="12"
+            x={2}
+            y={chart.pad.top - 18}
+            textAnchor="start"
+            fontSize="11"
             fontWeight="700"
-            fill="#6b7280"
+            fill={INK}
+            fillOpacity="0.45"
           >
-            {label.label}
+            {unitLabel}
           </text>
-        ))}
-      </svg>
+
+          {/* area + line, split into past / future */}
+          <path d={chart.area} fill="url(#np-area-past)" clipPath="url(#np-clip-past)" />
+          <path d={chart.area} fill="url(#np-area-future)" clipPath="url(#np-clip-future)" />
+          <path
+            d={chart.line}
+            fill="none"
+            stroke={INK}
+            strokeOpacity="0.28"
+            strokeWidth="2"
+            strokeLinejoin="round"
+            clipPath="url(#np-clip-past)"
+          />
+          <path
+            d={chart.line}
+            fill="none"
+            stroke="#4A5AE8"
+            strokeWidth="2.5"
+            strokeLinejoin="round"
+            clipPath="url(#np-clip-future)"
+          />
+
+          {/* now marker */}
+          {chart.current ? (
+            <g>
+              <line
+                x1={chart.current.x}
+                x2={chart.current.x}
+                y1={chart.pad.top}
+                y2={chart.y0}
+                stroke="#4A5AE8"
+                strokeOpacity="0.35"
+                strokeWidth="1"
+                strokeDasharray="3 4"
+              />
+              <circle cx={chart.current.x} cy={chart.current.y} r="10" fill="#5C6EF5" fillOpacity="0.22" />
+              <circle cx={chart.current.x} cy={chart.current.y} r="4.5" fill="#3040D5" stroke="#FFFFFF" strokeWidth="2" />
+            </g>
+          ) : null}
+
+          {/* price-level strip */}
+          {chart.strip.map((seg) => (
+            <rect
+              key={seg.key}
+              x={seg.x}
+              y={chart.stripY}
+              width={seg.w}
+              height="6"
+              rx="2"
+              fill={seg.fill}
+              fillOpacity={seg.opacity}
+            />
+          ))}
+
+          {/* hour labels */}
+          {chart.hourLabels.map((label) => (
+            <text
+              key={label.x}
+              x={label.x}
+              y={height - 8}
+              textAnchor="middle"
+              fontSize="11"
+              fontWeight={label.isCurrent ? '800' : '600'}
+              fill={INK}
+              fillOpacity={label.isCurrent ? 1 : 0.45}
+              style={{ fontVariantNumeric: 'tabular-nums' }}
+            >
+              {label.label}
+            </text>
+          ))}
+
+          {/* hover */}
+          {hoveredNode ? (
+            <g>
+              <line
+                x1={hoveredNode.x}
+                x2={hoveredNode.x}
+                y1={chart.pad.top}
+                y2={chart.stripY + 6}
+                stroke={INK}
+                strokeOpacity="0.25"
+                strokeWidth="1"
+              />
+              <circle cx={hoveredNode.x} cy={hoveredNode.y} r="4.5" fill={INK} stroke="#FFFFFF" strokeWidth="2" />
+              <ChartChip
+                anchorX={hoveredNode.x}
+                anchorY={hoveredNode.y}
+                text={`${tallinnTime(hoveredNode.date)} · ${formatNumber(hoveredNode.value, decimals)} ${unitLabel}`}
+                fill={INK}
+                bounds={bounds}
+              />
+            </g>
+          ) : chart.current ? (
+            <ChartChip
+              anchorX={chart.current.x}
+              anchorY={chart.current.y}
+              text={`${nowLabel} · ${formatNumber(chart.current.value, decimals)} ${unitLabel}`}
+              fill="#3040D5"
+              bounds={bounds}
+            />
+          ) : null}
+        </svg>
+      )}
     </div>
   )
 }
 
+/* ------------------------------------------------------------------ */
+/* Settings                                                            */
+/* ------------------------------------------------------------------ */
+
 const UNITS = ['c/kWh', '€/kWh', '€/MWh']
+const SETTINGS_KEY = 'nordprice:settings:v1'
 
 function SettingsPopover({ open, onClose, children }) {
   const ref = useRef(null)
   useEffect(() => {
-    if (!open) return
+    if (!open) return undefined
     function handleClick(e) {
       if (ref.current && !ref.current.contains(e.target)) onClose()
     }
@@ -735,7 +866,7 @@ function SettingsPopover({ open, onClose, children }) {
   return (
     <div
       ref={ref}
-      className="absolute right-0 top-full z-50 mt-2 w-72 rounded-xl border border-gray-200 bg-white p-5 shadow-xl"
+      className="fixed inset-x-4 top-[76px] z-50 rounded-2xl bg-white p-5 shadow-[0_20px_50px_-20px_rgba(26,31,46,.35)] ring-1 ring-ink/[.06] sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-3 sm:w-72"
     >
       {children}
     </div>
@@ -744,47 +875,129 @@ function SettingsPopover({ open, onClose, children }) {
 
 function SettingsSection({ label, children }) {
   return (
-    <div className="mb-4 last:mb-0">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">{label}</p>
+    <div className="mb-5 last:mb-0">
+      <p className="mb-2.5 text-label uppercase text-ink/45">{label}</p>
       {children}
     </div>
   )
 }
 
+function GearIcon({ className }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Page                                                                */
+/* ------------------------------------------------------------------ */
+
 export default function Home({ initialData, fetchedAt, dataSource }) {
   const [region, setRegion] = useState('EE')
   const [day, setDay] = useState('today')
   const [unit, setUnit] = useState('c/kWh')
-  const [includeTax, setIncludeTax] = useState(false)
+  const [includeTax, setIncludeTax] = useState(true)
   const [lang, setLang] = useState('et')
   const [intervalView, setIntervalView] = useState('15min')
   const [settingsOpen, setSettingsOpen] = useState(false)
 
   const t = TRANSLATIONS[lang]
   const areaNames = AREA_NAMES[lang]
+  const unitLabel = t.unitShort[unit]
+  const [unitWordMain, unitWordSub] = t.unitWords[unit]
+
+  useEffect(() => {
+    document.documentElement.lang = lang
+  }, [lang])
+
+  // Persist display preferences on the device (localStorage only – nothing is
+  // sent to the server, so no cookie consent is required).
+  const [settingsLoaded, setSettingsLoaded] = useState(false)
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(SETTINGS_KEY)
+      if (raw) {
+        const saved = JSON.parse(raw)
+        if (AREAS.some((area) => area.code === saved.region)) setRegion(saved.region)
+        if (UNITS.includes(saved.unit)) setUnit(saved.unit)
+        if (typeof saved.includeTax === 'boolean') setIncludeTax(saved.includeTax)
+        if (saved.intervalView === '1h' || saved.intervalView === '15min') setIntervalView(saved.intervalView)
+        if (saved.lang === 'et' || saved.lang === 'en') setLang(saved.lang)
+      }
+    } catch (error) {
+      // ignore corrupt or unavailable storage
+    }
+    setSettingsLoaded(true)
+  }, [])
+
+  useEffect(() => {
+    if (!settingsLoaded) return
+    try {
+      window.localStorage.setItem(
+        SETTINGS_KEY,
+        JSON.stringify({ region, unit, includeTax, intervalView, lang }),
+      )
+    } catch (error) {
+      // storage may be unavailable (private mode, quota) – fail silently
+    }
+  }, [settingsLoaded, region, unit, includeTax, intervalView, lang])
 
   const regionData = initialData[region] ?? initialData.EE
   const todayPoints = regionData.today ?? []
-  const rawActivePoints = day === 'today' ? todayPoints : regionData.tomorrow ?? []
+  const tomorrowPoints = regionData.tomorrow ?? []
+  // Nord Pool's CET trading day spills into the first hour of the Tallinn day,
+  // so a single 00:00 point does not mean tomorrow has been published.
+  const tomorrowPublished = isDayPublished(tomorrowPoints)
+  const rawActivePoints =
+    day === 'today' ? todayPoints : tomorrowPublished ? tomorrowPoints : []
   const activePoints = intervalView === '1h' ? aggregateToHourly(rawActivePoints) : rawActivePoints
   const currentPoint = getCurrentPoint(todayPoints)
+  // The chart may show hourly aggregates, so resolve "now" against the same series.
+  const chartCurrentPoint = getCurrentPoint(
+    intervalView === '1h' ? aggregateToHourly(todayPoints) : todayPoints,
+  )
   const currentPrice = formatPrice(currentPoint?.price, unit, includeTax)
-  const stats = getStats(activePoints, unit, includeTax, [t.lowest, t.average, t.highest])
-  const bestUpcoming = getBestUpcoming(activePoints, unit, includeTax)
-  const activeDayLabel =
-    day === 'today'
-      ? activePoints[0]
-        ? tallinnDateLabel(new Date(activePoints[0].timestamp * 1000), t.dateLocale)
-        : t.today
-      : activePoints[0]
-      ? tallinnDateLabel(new Date(activePoints[0].timestamp * 1000), t.dateLocale)
-      : t.tomorrow
+  const level = priceLevel(
+    currentPoint ? displayValue(currentPoint.price, 'c/kWh', true) : null,
+  )
+  const stats = getStats(activePoints, unit, includeTax, [t.min, t.average, t.max]).map(
+    (stat) => (stat.tone === 'avg' ? { ...stat, detail: unitLabel } : stat),
+  )
+  const activeDayLabel = activePoints[0]
+    ? tallinnDateLabel(new Date(activePoints[0].timestamp * 1000), t.dateLocale)
+    : day === 'today'
+    ? t.today
+    : t.tomorrow
   const currentTime = currentPoint
     ? tallinnTime(new Date(currentPoint.timestamp * 1000))
     : '--:--'
-  const updatedAt = fetchedAt
-    ? tallinnTime(new Date(fetchedAt), { second: '2-digit' })
-    : '--:--'
+  const updatedAt = fetchedAt ? tallinnTime(new Date(fetchedAt)) : '--:--'
+
+  const regionTabs = (
+    <PillGroup>
+      {AREAS.map((area) => (
+        <SegmentButton
+          key={area.code}
+          selected={region === area.code}
+          onClick={() => setRegion(area.code)}
+        >
+          {area.code}
+        </SegmentButton>
+      ))}
+    </PillGroup>
+  )
 
   return (
     <>
@@ -793,35 +1006,21 @@ export default function Home({ initialData, fetchedAt, dataSource }) {
         <meta name="description" content={t.pageDescription} />
       </Head>
 
-      <main className="min-h-screen bg-[#f6f7f9] text-gray-900">
-        <div className="mx-auto max-w-7xl px-5 py-5 sm:px-6 lg:px-8">
-          <header className="flex items-center justify-between border-b border-gray-200 pb-5">
+      <main className="relative min-h-screen text-ink">
+        <div className="ambient" aria-hidden="true">
+          <div className="aurora" />
+          <div className="aurora aurora--2" />
+        </div>
+
+        <div className="relative z-10 mx-auto max-w-6xl px-4 py-4 sm:px-6 lg:px-8">
+          {/* Header */}
+          <header className="flex items-center justify-between gap-4 py-3">
             <div className="flex items-center gap-3">
-              <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 50 50" className="flex-none">
-                <defs>
-                  <radialGradient id="eh-grad" cx="65%" cy="35%" r="85%">
-                    <stop offset="0%" stopColor="#7B8FFF"/>
-                    <stop offset="50%" stopColor="#4A5AE8"/>
-                    <stop offset="100%" stopColor="#3040D5"/>
-                  </radialGradient>
-                </defs>
-                <rect width="50" height="50" rx="10" fill="url(#eh-grad)"/>
-                <g fill="#FFF" transform="translate(15.234 7.91)">
-                  <g>
-                    <path fillOpacity="0.80" d="M15.4296875 0L0 19.6289063 8.18260051 19.6289063z"/>
-                    <path fillOpacity="0.40" d="M0 19.6289062L15.4296875 0 4.06593117 19.6289062z"/>
-                  </g>
-                  <g transform="rotate(180 9.766 17.139)">
-                    <path fillOpacity="0.80" d="M15.4296875 0L0 19.6289063 8.18260051 19.6289063z"/>
-                    <path fillOpacity="0.40" d="M0 19.6289062L15.4296875 0 4.06593117 19.6289062z"/>
-                  </g>
-                </g>
-              </svg>
-              <div>
-                <p className="text-2xl font-bold tracking-normal">NordPrice</p>
-                <p className="text-sm font-medium text-gray-500">{t.appSubtitle}</p>
-              </div>
+              <BrandMark gradientId="np-grad-header" />
+              <p className="text-xl font-bold tracking-tight">NordPrice</p>
             </div>
+
+            <div className="hidden sm:block">{regionTabs}</div>
 
             <div className="flex items-center gap-2">
               <div className="relative">
@@ -829,58 +1028,48 @@ export default function Home({ initialData, fetchedAt, dataSource }) {
                   type="button"
                   onClick={() => setSettingsOpen((o) => !o)}
                   className={classNames(
-                    'flex h-10 w-10 items-center justify-center rounded-lg transition',
+                    'flex h-10 w-10 items-center justify-center rounded-full transition',
                     settingsOpen
-                      ? 'bg-gray-900 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
+                      ? 'bg-ink text-white'
+                      : 'bg-ink/[.05] text-ink/70 hover:bg-ink/10 hover:text-ink',
                   )}
-                  aria-label="Seaded"
+                  aria-label={t.settings}
+                  aria-expanded={settingsOpen}
                 >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-                    <circle cx="12" cy="12" r="3"/>
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                  </svg>
+                  <GearIcon className="h-5 w-5" />
                 </button>
                 <SettingsPopover open={settingsOpen} onClose={() => setSettingsOpen(false)}>
-                  <SettingsSection label={lang === 'et' ? 'Piirkond' : 'Region'}>
-                    <div className="flex rounded-lg bg-gray-100 p-1">
-                      {AREAS.map((area) => (
-                        <SegmentButton
-                          key={area.code}
-                          selected={region === area.code}
-                          onClick={() => setRegion(area.code)}
-                        >
-                          {area.code}
-                        </SegmentButton>
-                      ))}
-                    </div>
-                  </SettingsSection>
-                  <SettingsSection label={lang === 'et' ? 'Ühik' : 'Unit'}>
-                    <div className="flex rounded-lg bg-gray-100 p-1">
+                  <div className="sm:hidden">
+                    <SettingsSection label={t.region}>
+                      <PillGroup className="flex">
+                        {AREAS.map((area) => (
+                          <SegmentButton
+                            key={area.code}
+                            selected={region === area.code}
+                            onClick={() => setRegion(area.code)}
+                          >
+                            {area.code}
+                          </SegmentButton>
+                        ))}
+                      </PillGroup>
+                    </SettingsSection>
+                  </div>
+                  <SettingsSection label={t.unit}>
+                    <PillGroup className="flex">
                       {UNITS.map((u) => (
                         <SegmentButton key={u} selected={unit === u} onClick={() => setUnit(u)}>
                           {u}
                         </SegmentButton>
                       ))}
-                    </div>
+                    </PillGroup>
                   </SettingsSection>
-                  <SettingsSection label={lang === 'et' ? 'Graafiku intervall' : 'Graph interval'}>
-                    <div className="flex rounded-lg bg-gray-100 p-1">
-                      <SegmentButton selected={intervalView === '15min'} onClick={() => setIntervalView('15min')}>
-                        {t.interval15min}
-                      </SegmentButton>
-                      <SegmentButton selected={intervalView === '1h'} onClick={() => setIntervalView('1h')}>
-                        {t.interval1h}
-                      </SegmentButton>
-                    </div>
-                  </SettingsSection>
-                  <SettingsSection label={lang === 'et' ? 'Maks' : 'Tax'}>
-                    <label className="inline-flex items-center gap-2 text-sm font-semibold text-gray-700">
+                  <SettingsSection label={t.tax}>
+                    <label className="inline-flex items-center gap-2.5 text-sm font-semibold text-ink/80">
                       <input
                         type="checkbox"
                         checked={includeTax}
                         onChange={(e) => setIncludeTax(e.target.checked)}
-                        className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
+                        className="h-4 w-4 rounded border-ink/20 text-brand-600 focus:ring-brand-500"
                       />
                       {t.vatIncluded}
                     </label>
@@ -888,108 +1077,128 @@ export default function Home({ initialData, fetchedAt, dataSource }) {
                 </SettingsPopover>
               </div>
 
-              <div className="flex rounded-lg bg-gray-100 p-1 ring-1 ring-inset ring-gray-200">
-                <SegmentButton selected={lang === 'et'} onClick={() => setLang('et')}>ET</SegmentButton>
-                <SegmentButton selected={lang === 'en'} onClick={() => setLang('en')}>EN</SegmentButton>
-              </div>
+              <PillGroup>
+                <SegmentButton selected={lang === 'et'} onClick={() => setLang('et')}>
+                  ET
+                </SegmentButton>
+                <SegmentButton selected={lang === 'en'} onClick={() => setLang('en')}>
+                  EN
+                </SegmentButton>
+              </PillGroup>
             </div>
           </header>
 
-          <section className="grid gap-5 py-6 lg:grid-cols-12">
-            <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm lg:col-span-4">
-              <p className="text-sm font-semibold text-gray-500">
-                {t.currentPrice(areaNames[region])}
-              </p>
-              <div className="mt-4 flex items-end gap-3">
-                <h1 className="text-6xl font-bold tracking-normal text-gray-900">
-                  {currentPrice.value}
-                </h1>
-                <p className="pb-2 text-base font-bold text-gray-500">
-                  {currentPrice.unit}
+
+          {/* Dashboard */}
+          <section className="mt-5 grid gap-5 lg:grid-cols-12">
+            {/* Now panel */}
+            <div className="relative overflow-hidden rounded-[20px] bg-gradient-to-br from-ink via-[#232B52] to-brand-900 p-6 text-white shadow-[0_30px_60px_-30px_rgba(31,42,128,.6)] ring-1 ring-white/10 sm:p-8 lg:col-span-5">
+              <div className="night-glow -right-16 -top-20 h-64 w-64 bg-brand-500/50" />
+              <div className="night-glow -bottom-24 left-10 h-56 w-56 bg-brand-400/30" />
+
+              <div className="relative">
+                <p className="text-label uppercase text-white/55">
+                  {t.currentPrice(areaNames[region])} · {currentTime}
                 </p>
+
+                <div className="mt-5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <span className="text-[72px] font-extrabold leading-none tabular-nums tracking-tight sm:text-[88px]">
+                    {currentPrice.value}
+                  </span>
+                  <span className="text-lg font-semibold text-white/60 sm:text-xl">
+                    {unitWordMain}
+                    {unitWordSub}
+                  </span>
+                </div>
+
+                <div className="mt-5 flex flex-wrap items-center gap-3">
+                  {level ? (
+                    <span
+                      className={classNames(
+                        'rounded-full px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] ring-1',
+                        LEVEL_BADGE[level],
+                      )}
+                    >
+                      {t.level[level]}
+                    </span>
+                  ) : null}
+                  <span className="flex items-center gap-1.5 text-xs font-medium text-white/50">
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+                    {t.updatedLabel} {updatedAt}
+                  </span>
+                </div>
+
               </div>
-              <p className="mt-3 text-sm font-medium text-gray-400">{currentTime}</p>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-3 lg:col-span-8">
-              {stats.map((stat) => (
-                <StatCard
-                  key={stat.label}
-                  label={stat.label}
-                  value={stat.value}
-                  detail={stat.detail}
-                />
-              ))}
-            </div>
-
-          </section>
-
-          <section className="grid gap-5 lg:grid-cols-12">
-            <div className="lg:col-span-9">
-              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            {/* Chart panel */}
+            <Card as="section" className="p-5 sm:p-7 lg:col-span-7">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-gray-500">
+                  <h2 className="text-2xl font-bold tracking-tight">{t.priceCurve}</h2>
+                  <p className="mt-0.5 text-sm font-medium text-ink/50">
                     {areaNames[region]} · {activeDayLabel}
                   </p>
-                  <h2 className="text-3xl font-bold tracking-normal">
-                    {t.priceCurve}
-                  </h2>
                 </div>
-                <div className="flex w-fit rounded-lg bg-gray-100 p-1 ring-1 ring-inset ring-gray-200">
-                  <SegmentButton
-                    selected={day === 'today'}
-                    onClick={() => setDay('today')}
-                  >
-                    {t.today}
-                  </SegmentButton>
-                  <SegmentButton
-                    selected={day === 'tomorrow'}
-                    onClick={() => setDay('tomorrow')}
-                  >
-                    {t.tomorrow}
-                  </SegmentButton>
+                <div className="flex flex-wrap gap-2">
+                  <PillGroup>
+                    <SegmentButton size="sm" selected={day === 'today'} onClick={() => setDay('today')}>
+                      {t.today}
+                    </SegmentButton>
+                    <SegmentButton size="sm" selected={day === 'tomorrow'} onClick={() => setDay('tomorrow')}>
+                      {t.tomorrow}
+                    </SegmentButton>
+                  </PillGroup>
+                  <PillGroup>
+                    <SegmentButton size="sm" selected={intervalView === '1h'} onClick={() => setIntervalView('1h')}>
+                      {t.interval1h}
+                    </SegmentButton>
+                    <SegmentButton size="sm" selected={intervalView === '15min'} onClick={() => setIntervalView('15min')}>
+                      {t.interval15min}
+                    </SegmentButton>
+                  </PillGroup>
                 </div>
               </div>
-              <PriceGraph
-                points={activePoints}
-                currentPoint={day === 'today' ? currentPoint : null}
-                unit={unit}
-                includeTax={includeTax}
-                emptyText={t.notPublished}
-              />
-            </div>
 
-            <aside className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm lg:col-span-3">
-              <p className="text-sm font-semibold text-gray-500">
-                {t.cheapestUpcoming}
-              </p>
-              <div className="mt-4 divide-y divide-gray-100">
-                {bestUpcoming.length ? (
-                  bestUpcoming.map((item) => (
-                    <div
-                      key={`${item.time}-${item.price}`}
-                      className="flex items-center justify-between py-3"
-                    >
-                      <span className="font-bold text-gray-900">{item.time}</span>
-                      <span className="rounded-md bg-gray-100 px-2 py-1 text-sm font-bold text-gray-700">
-                        {item.price}
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="py-3 text-sm font-medium text-gray-500">
-                    {t.noUpcoming}
-                  </p>
-                )}
+              <div className="mt-5">
+                <PriceGraph
+                  points={activePoints}
+                  currentPoint={day === 'today' ? chartCurrentPoint : null}
+                  unit={unit}
+                  includeTax={includeTax}
+                  emptyText={day === 'tomorrow' ? t.tomorrowAvailable : t.notPublished}
+                  nowLabel={t.now}
+                  unitLabel={unitLabel}
+                />
               </div>
-            </aside>
+
+              <div className="mt-4 grid grid-cols-3 gap-3">
+                {stats.map((stat) => (
+                  <StatTile
+                    key={stat.tone}
+                    label={stat.label}
+                    value={stat.value}
+                    detail={stat.detail}
+                    tone={stat.tone}
+                  />
+                ))}
+              </div>
+            </Card>
           </section>
 
-          <section className="mt-8 flex flex-col items-center gap-4 border-t border-gray-200 pt-8 pb-4">
-            <p className="text-sm font-semibold text-gray-500">
-              {lang === 'et' ? 'Laadi rakendus alla' : 'Download the app'}
-            </p>
-            <div className="flex flex-wrap items-center justify-center gap-4">
+          {/* Footer */}
+          <footer className="mt-8 mb-4 flex flex-col items-center gap-5 border-t border-ink/10 pt-6 text-center sm:flex-row sm:justify-between sm:text-left">
+            <div className="text-sm text-ink/55">
+              <p className="font-semibold text-ink/80">NordPrice · {t.appSubtitle}</p>
+              <p className="mt-0.5 text-xs">
+                {dataSource === 'live' ? t.liveFromElering : t.sampleFallback} ·{' '}
+                <Link href="/privacy" className="font-semibold text-ink/70 hover:text-ink">
+                  {t.privacy}
+                </Link>
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-3">
               <a
                 href="https://apple.co/3w8DNWw"
                 target="_blank"
@@ -1000,7 +1209,7 @@ export default function Home({ initialData, fetchedAt, dataSource }) {
                 <img
                   src={lang === 'et' ? appStoreBadgeEt.src : appStoreBadgeEn.src}
                   alt="Download on the App Store"
-                  style={{ height: 40, width: 'auto', display: 'block' }}
+                  style={{ height: 36, width: 'auto', display: 'block' }}
                 />
               </a>
               <a
@@ -1013,11 +1222,11 @@ export default function Home({ initialData, fetchedAt, dataSource }) {
                 <img
                   src={lang === 'et' ? googlePlayBadgeEt.src : googlePlayBadgeEn.src}
                   alt="Get it on Google Play"
-                  style={{ height: 40, width: 'auto', display: 'block' }}
+                  style={{ height: 36, width: 'auto', display: 'block' }}
                 />
               </a>
             </div>
-          </section>
+          </footer>
         </div>
       </main>
     </>
