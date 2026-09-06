@@ -1163,7 +1163,7 @@ export default function Home({ initialData, fetchedAt, dataSource }) {
           {/* Dashboard */}
           <section className="mt-5 grid gap-5">
             {/* Now panel */}
-            <div className="relative overflow-hidden rounded-[20px] bg-gradient-to-br from-ink via-[#232B52] to-brand-900 p-6 text-white shadow-[0_30px_60px_-30px_rgba(31,42,128,.6)] ring-1 ring-white/10 sm:p-8">
+            <div className="relative overflow-hidden rounded-[20px] bg-gradient-to-br from-[#1A1F2E] via-[#232B52] to-[#1F2A80] p-6 text-white shadow-[0_30px_60px_-30px_rgba(31,42,128,.6)] ring-1 ring-white/10 sm:p-8">
               <div className="night-glow -right-16 -top-20 h-64 w-64 bg-brand-500/50" />
               <div className="night-glow -bottom-24 left-10 h-56 w-56 bg-brand-400/30" />
 
