@@ -28,6 +28,14 @@ html.dark {
   --color-ink:   232 234 246; /* #e8eaf6 */
 }
 
+body {
+  background: #a8b2f5;
+}
+
+html.dark body {
+  background: #1a1e35;
+}
+
 #__next {
   min-height: 100%;
 }
