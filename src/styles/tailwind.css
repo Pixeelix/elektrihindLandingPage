@@ -18,11 +18,21 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --color-cream: 250 248 244; /* #FAF8F4 */
+  --color-ink:   26 31 46;    /* #1A1F2E */
+}
+
+html.dark {
+  --color-cream: 30 34 53;    /* #1e2235 */
+  --color-ink:   232 234 246; /* #e8eaf6 */
+}
+
 #__next {
   min-height: 100%;
 }
 
-/* Ambient background: cool light base with a soft "aurora" ribbon across the top */
+/* Ambient background */
 @layer components {
   .ambient {
     position: absolute;
@@ -31,6 +41,10 @@
     overflow: hidden;
     pointer-events: none;
     background: linear-gradient(to bottom, #a8b2f5 0%, #c8cef8 40%, #eef0f7 100%);
+  }
+
+  html.dark .ambient {
+    background: linear-gradient(to bottom, #1a1e35 0%, #1e2235 55%, #252a42 100%);
   }
 
   .aurora {
@@ -101,4 +115,30 @@
   .aurora {
     animation: none;
   }
+}
+
+/* Dark mode: SVG chart color overrides */
+html.dark .np-chart text {
+  fill: rgb(var(--color-ink));
+}
+html.dark .np-chart line {
+  stroke: rgb(var(--color-ink));
+}
+html.dark #np-area-past stop {
+  stop-color: rgb(var(--color-ink));
+}
+html.dark .np-chart .np-past-line {
+  stroke: rgb(var(--color-ink));
+}
+html.dark .np-chart .np-hover-line {
+  stroke: rgb(var(--color-ink));
+}
+html.dark .np-chart .np-hover-dot {
+  fill: rgb(var(--color-ink));
+}
+html.dark .np-chart-chip-bg {
+  fill: rgb(var(--color-ink));
+}
+html.dark .np-chart-chip-text {
+  fill: rgb(var(--color-cream)) !important;
 }

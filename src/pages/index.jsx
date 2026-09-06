@@ -60,6 +60,9 @@ const TRANSLATIONS = {
     unit: 'Ühik',
     graphInterval: 'Intervall',
     tax: 'Maks',
+    theme: 'Teema',
+    themeLight: 'Hele',
+    themeDark: 'Tume',
     downloadApp: 'Laadi rakendus alla',
     privacy: 'Privaatsus',
     nordPoolGuide: 'Mis on Nord Pool elektrihind?',
@@ -106,6 +109,9 @@ const TRANSLATIONS = {
     unit: 'Unit',
     graphInterval: 'Interval',
     tax: 'Tax',
+    theme: 'Theme',
+    themeLight: 'Light',
+    themeDark: 'Dark',
     downloadApp: 'Download the app',
     privacy: 'Privacy',
     nordPoolGuide: 'What is Nord Pool electricity price?',
@@ -404,7 +410,7 @@ function Card({ className, children, as: Tag = 'div' }) {
   return (
     <Tag
       className={classNames(
-        'rounded-[20px] bg-white/80 shadow-[0_10px_40px_-22px_rgba(26,31,46,.25)] ring-1 ring-ink/[.06] backdrop-blur-sm',
+        'rounded-[20px] bg-cream/60 shadow-[0_10px_40px_-22px_rgba(0,0,0,.3)] ring-1 ring-ink/[.08] backdrop-blur-sm',
         className,
       )}
     >
@@ -434,7 +440,7 @@ function SegmentButton({ children, selected, onClick, size = 'md' }) {
       className={classNames(
         'rounded-full font-semibold transition',
         size === 'sm' ? 'h-8 px-3 text-xs' : 'h-9 px-3.5 text-sm',
-        selected ? 'bg-ink text-white shadow-sm' : 'text-ink/60 hover:bg-white/70 hover:text-ink',
+        selected ? 'bg-ink text-cream shadow-sm' : 'text-ink/60 hover:bg-ink/[.08] hover:text-ink',
       )}
     >
       {children}
@@ -493,12 +499,14 @@ function ChartChip({ anchorX, anchorY, text, fill, bounds, textColor = '#FFFFFF'
 
   return (
     <g pointerEvents="none">
-      <rect x={x} y={y} width={chipW} height={chipH} rx={12} fill={fill} />
+      <rect className="np-chart-chip-bg" x={x} y={y} width={chipW} height={chipH} rx={12} fill={fill} />
       <path
+        className="np-chart-chip-bg"
         d={`M ${pointerX - 5} ${y + chipH - 0.5} L ${pointerX + 5} ${y + chipH - 0.5} L ${pointerX} ${y + chipH + 5} Z`}
         fill={fill}
       />
       <text
+        className="np-chart-chip-text"
         x={x + chipW / 2}
         y={y + chipH / 2 + 4.5}
         textAnchor="middle"
@@ -679,7 +687,7 @@ function PriceGraph({
           viewBox={`0 0 ${width} ${height}`}
           width="100%"
           height={height}
-          className="block select-none"
+          className="np-chart block select-none"
           style={{ touchAction: 'pan-y' }}
           onPointerMove={handlePointer}
           onPointerDown={handlePointer}
@@ -747,6 +755,7 @@ function PriceGraph({
           <path
             d={chart.line}
             fill="none"
+            className="np-past-line"
             stroke={INK}
             strokeOpacity="0.28"
             strokeWidth="2"
@@ -815,6 +824,7 @@ function PriceGraph({
           {hoveredNode ? (
             <g>
               <line
+                className="np-hover-line"
                 x1={hoveredNode.x}
                 x2={hoveredNode.x}
                 y1={chart.pad.top}
@@ -823,7 +833,7 @@ function PriceGraph({
                 strokeOpacity="0.25"
                 strokeWidth="1"
               />
-              <circle cx={hoveredNode.x} cy={hoveredNode.y} r="4.5" fill={INK} stroke="#FFFFFF" strokeWidth="2" />
+              <circle className="np-hover-dot" cx={hoveredNode.x} cy={hoveredNode.y} r="4.5" fill={INK} stroke="#FFFFFF" strokeWidth="2" />
               <ChartChip
                 anchorX={hoveredNode.x}
                 anchorY={hoveredNode.y}
@@ -868,7 +878,7 @@ function SettingsPopover({ open, onClose, children }) {
   return (
     <div
       ref={ref}
-      className="fixed inset-x-4 top-[76px] z-50 rounded-2xl bg-white p-5 shadow-[0_20px_50px_-20px_rgba(26,31,46,.35)] ring-1 ring-ink/[.06] sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-3 sm:w-72"
+      className="fixed inset-x-4 top-[76px] z-50 rounded-2xl bg-cream p-5 shadow-[0_20px_50px_-20px_rgba(0,0,0,.4)] ring-1 ring-ink/[.08] sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-3 sm:w-72"
     >
       {children}
     </div>
@@ -914,6 +924,7 @@ export default function Home({ initialData, fetchedAt, dataSource }) {
   const [lang, setLang] = useState('et')
   const [intervalView, setIntervalView] = useState('15min')
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [isDark, setIsDark] = useState(false)
 
   const t = TRANSLATIONS[lang]
   const areaNames = AREA_NAMES[lang]
@@ -924,11 +935,29 @@ export default function Home({ initialData, fetchedAt, dataSource }) {
     document.documentElement.lang = lang
   }, [lang])
 
+  useEffect(() => {
+    const html = document.documentElement
+    const meta = document.querySelector('meta[name="theme-color"]')
+    if (isDark) {
+      html.classList.add('dark')
+      html.style.background = '#1a1e35'
+      if (meta) meta.setAttribute('content', '#1a1e35')
+    } else {
+      html.classList.remove('dark')
+      html.style.background = '#a8b2f5'
+      if (meta) meta.setAttribute('content', '#a8b2f5')
+    }
+    try { window.localStorage.setItem('nordprice:theme', isDark ? 'dark' : 'light') } catch (e) {}
+  }, [isDark])
+
   // Persist display preferences on the device (localStorage only – nothing is
   // sent to the server, so no cookie consent is required).
   const [settingsLoaded, setSettingsLoaded] = useState(false)
   useEffect(() => {
     try {
+      const theme = window.localStorage.getItem('nordprice:theme')
+      if (theme === 'dark') setIsDark(true)
+
       const raw = window.localStorage.getItem(SETTINGS_KEY)
       if (raw) {
         const saved = JSON.parse(raw)
@@ -1109,6 +1138,12 @@ export default function Home({ initialData, fetchedAt, dataSource }) {
                       />
                       {t.vatIncluded}
                     </label>
+                  </SettingsSection>
+                  <SettingsSection label={t.theme}>
+                    <PillGroup className="flex">
+                      <SegmentButton selected={!isDark} onClick={() => setIsDark(false)}>{t.themeLight}</SegmentButton>
+                      <SegmentButton selected={isDark} onClick={() => setIsDark(true)}>{t.themeDark}</SegmentButton>
+                    </PillGroup>
                   </SettingsSection>
                 </SettingsPopover>
               </div>
