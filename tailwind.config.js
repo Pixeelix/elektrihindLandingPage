@@ -40,8 +40,8 @@ module.exports = {
       },
       colors: ({ colors }) => ({
         gray: colors.neutral,
-        cream: '#FAF8F4',
-        ink: '#1A1F2E',
+        cream: 'rgb(var(--color-cream) / <alpha-value>)',
+        ink: 'rgb(var(--color-ink) / <alpha-value>)',
         brand: {
           50: '#EEF1FF',
           100: '#DDE3FF',
