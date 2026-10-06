@@ -16,6 +16,7 @@ const AREAS = [
 const AREA_NAMES = {
   et: { EE: 'Eesti', FI: 'Soome', LV: 'Läti', LT: 'Leedu' },
   en: { EE: 'Estonia', FI: 'Finland', LV: 'Latvia', LT: 'Lithuania' },
+  fi: { EE: 'Viro', FI: 'Suomi', LV: 'Läti', LT: 'Leedu' },
 }
 
 const TRANSLATIONS = {
@@ -116,6 +117,55 @@ const TRANSLATIONS = {
     privacy: 'Privacy',
     nordPoolGuide: 'What is Nord Pool electricity price?',
     dateLocale: 'en-GB',
+  },
+  fi: {
+    interval15min: '15 min',
+    interval1h: '1 tunti',
+    pageTitle: 'NordPrice – Nord Pool sähkönhinnat reaaliajassa | Viro, Suomi, Läti, Leedu',
+    pageDescription: 'Katso Nord Pool sähkönhintoja reaaliajassa Virossa, Suomessa, Latviassa ja Liettuassa. Tämän päivän ja huomisen hintakaavio, ALV:n kanssa ja ilman. Ilmainen sovellus iOS:lle ja Androidille.',
+    appSubtitle: 'Nord Pool sähkönhinnat',
+    currentPrice: (name) => `Nykyinen hinta · ${name}`,
+    vatIncluded: 'ALV sisällytetty',
+    liveFromElering: 'Tiedot suoraan Eleringiltä',
+    sampleFallback: 'Esimerkkitiedot',
+    updatedLabel: 'Päivitetty',
+    now: 'Nyt',
+    priceCurve: 'Hintakaavio',
+    today: 'Tänään',
+    tomorrow: 'Huomenna',
+    notPublished: 'Hinnat eivät ole vielä julkaistu',
+    tomorrowAvailable: 'Huomisen hintatiedot ovat saatavilla 15:00 alkaen',
+    min: 'Min',
+    average: 'Keskiarvo',
+    max: 'Max',
+    level: {
+      veryCheap: 'Erittäin halpa',
+      cheap: 'Halpa',
+      normal: 'Keskimääräinen',
+      expensive: 'Kallis',
+    },
+    unitWords: {
+      'c/kWh': ['senttiä', '/kWh'],
+      '€/kWh': ['€', '/kWh'],
+      '€/MWh': ['€', '/MWh'],
+    },
+    unitShort: {
+      'c/kWh': 'c/kWh',
+      '€/kWh': '€/kWh',
+      '€/MWh': '€/MWh',
+    },
+    settings: 'Asetukset',
+    region: 'Alue',
+    unit: 'Yksikkö',
+    graphInterval: 'Aikaväli',
+    tax: 'Vero',
+    theme: 'Teema',
+    themeLight: 'Vaalea',
+    themeDark: 'Tumma',
+    downloadApp: 'Lataa sovellus',
+    privacy: 'Yksityisyys',
+    nordPoolGuide: 'Mikä on Nord Pool sähköhinta?',
+    dateLocale: 'fi-FI',
   },
 }
 
@@ -965,7 +1015,7 @@ export default function Home({ initialData, fetchedAt, dataSource }) {
         if (UNITS.includes(saved.unit)) setUnit(saved.unit)
         if (typeof saved.includeTax === 'boolean') setIncludeTax(saved.includeTax)
         if (saved.intervalView === '1h' || saved.intervalView === '15min') setIntervalView(saved.intervalView)
-        if (saved.lang === 'et' || saved.lang === 'en') setLang(saved.lang)
+        if (saved.lang === 'et' || saved.lang === 'en' || saved.lang === 'fi') setLang(saved.lang)
       }
     } catch (error) {
       // ignore corrupt or unavailable storage
@@ -1151,6 +1201,9 @@ export default function Home({ initialData, fetchedAt, dataSource }) {
               <PillGroup>
                 <SegmentButton selected={lang === 'et'} onClick={() => setLang('et')}>
                   ET
+                </SegmentButton>
+                <SegmentButton selected={lang === 'fi'} onClick={() => setLang('fi')}>
+                  FI
                 </SegmentButton>
                 <SegmentButton selected={lang === 'en'} onClick={() => setLang('en')}>
                   EN
